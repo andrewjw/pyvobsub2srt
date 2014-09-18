@@ -23,11 +23,10 @@ from xml.dom.minidom import parse
 parser = argparse.ArgumentParser(description='Convert vobsub subtitles into srt format.')
 parser.add_argument('file_name', metavar='file_name', type=str, 
                    help='The file name to process')
+parser.add_argument('--lang=', dest='lang', type=str, action="store", default="eng",
+                   help='The tesseract language to use')
 parser.add_argument('--forcedonly', dest='forcedonly', action='store_true',
                    help='Only convert subtitle entries that are forced')
-
-ocr_tools = pyocr.get_available_tools()
-ocr_lang = ocr_tools[0].get_available_languages()[0]
 
 def main():
     args = parser.parse_args()
@@ -36,9 +35,15 @@ def main():
         parser.print_usage()
         return
     else:
-        process_file(args.file_name, args.forcedonly)
+        ocr_tools = pyocr.get_available_tools()
+        if args.lang not in ocr_tools[0].get_available_languages():
+            print "%s is not an available language." % (args.lang, )
+            print "Options are: %s" % (", ".join(ocr_tools[0].get_available_languages()), )
+            return 1
+        
+        process_file(args.file_name, ocr_tools, args.lang, args.forcedonly)
 
-def process_file(file_name, forcedonly=False):
+def process_file(file_name, ocr_tools, lang, forcedonly=False):
     subprocess.call("subp2png -n " + ("--forced " if forcedonly else "") + file_name + " > /dev/null", shell=True)
 
     dom = parse(file_name + ".xml")
@@ -47,13 +52,13 @@ def process_file(file_name, forcedonly=False):
     for subtitle in dom.getElementsByTagName("subtitle"):
         print count
         print "%s --> %s" % (subtitle.attributes["start"].value.replace(".", ","), subtitle.attributes["stop"].value.replace(".", ","))
-        print get_subtitle_text(get_xml_text(subtitle.getElementsByTagName("image")[0].childNodes)).encode("utf8")
+        print get_subtitle_text(get_xml_text(subtitle.getElementsByTagName("image")[0].childNodes), ocr_tools, lang).encode("utf8")
         print
 
         count += 1
 
-def get_subtitle_text(image):
-    return ocr_tools[0].image_to_string(Image.open(image), lang=ocr_lang,
+def get_subtitle_text(image, ocr_tools, lang):
+    return ocr_tools[0].image_to_string(Image.open(image), lang=lang,
                            builder=pyocr.builders.TextBuilder())
 
 def get_xml_text(nodelist):

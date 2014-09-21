@@ -50,9 +50,11 @@ def process_file(file_name, ocr_tools, lang, forcedonly=False):
 
     count = 1
     for subtitle in dom.getElementsByTagName("subtitle"):
+        image = get_xml_text(subtitle.getElementsByTagName("image")[0].childNodes)
+        subprocess.call("convert " + image + " -background black -alpha remove -negate " + image, shell=True)
         print count
         print "%s --> %s" % (subtitle.attributes["start"].value.replace(".", ","), subtitle.attributes["stop"].value.replace(".", ","))
-        print get_subtitle_text(get_xml_text(subtitle.getElementsByTagName("image")[0].childNodes), ocr_tools, lang).encode("utf8")
+        print get_subtitle_text(image, ocr_tools, lang).encode("utf8")
         print
 
         count += 1

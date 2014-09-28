@@ -50,6 +50,9 @@ def process_file(file_name, ocr_tools, lang, forcedonly=False):
 
     count = 1
     for subtitle in dom.getElementsByTagName("subtitle"):
+        if not subtitle.attributes.has_key("start") or not subtitle.attributes.has_key("stop"):
+            continue # Can't do anything with these, probably a dodgy subtitle."
+        
         image = get_xml_text(subtitle.getElementsByTagName("image")[0].childNodes)
         subprocess.call("convert " + image + " -background black -alpha remove -negate " + image, shell=True)
         print count
